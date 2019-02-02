@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1459703169 source:c:\±è°æ¸¸\kaist\c\hw2\main.c
+	<assert.h>
+	<stdio.h>
+	"str.h"
+
+1459344931 c:\±è°æ¸¸\kaist\c\hw2\str.h
+	<unistd.h>
+

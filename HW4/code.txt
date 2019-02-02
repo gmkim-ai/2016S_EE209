@@ -1,0 +1,484 @@
+### --------------------------------------------------------------------
+### mydc.s
+###
+### Desk Calculator (dc)
+### --------------------------------------------------------------------
+
+	.equ   ARRAYSIZE, 20
+	.equ   EOF, -1
+	
+.section ".rodata"
+
+scanfFormat:
+	.asciz "%s"
+stackempty:
+    	.asciz "dc: stack empty\n"
+print:
+    	.asciz "%d\n"
+
+### --------------------------------------------------------------------
+
+        .section ".data"
+
+### --------------------------------------------------------------------
+
+        .section ".bss"
+buffer:
+        .skip  ARRAYSIZE
+
+### --------------------------------------------------------------------
+
+	.section ".text"
+	   
+	## Formal parameter offsets:
+    	.equ    IBASE,  8
+    	.equ    IEXP,   12
+    	## Local variable offsets:
+    	.equ    IPOWER, -4
+    	.equ    IINDEX, -8
+
+
+	## -------------------------------------------------------------
+	## int main(void)
+	## Runs desk calculator program.  Returns 0.
+	## -------------------------------------------------------------
+
+	.globl  main
+	.type   main,@function
+
+main:
+
+	pushl   %ebp
+	movl    %esp, %ebp
+
+input:
+	## dc number stack initialized. %esp = %ebp
+	
+	## scanf("%s", buffer)
+	pushl	$buffer
+	pushl	$scanfFormat
+	call    scanf
+	addl    $8, %esp
+
+	## check if user input EOF
+	cmp	$EOF, %eax
+	je	quit
+
+	##start
+digitcase:
+	movl	$buffer, %eax
+ 	cmpb	$48, (%eax)      ## Compare against value of กฎ0กฏ
+    	jl     	_digitcase	   ## Jump to _Digitcase if (%eax) < กฎ0กฏ
+	movl	$buffer, %eax	
+    	cmpb   	$57, (%eax)     ## Compare against value of กฎ9กฏ
+    	jg     	_digitcase	   ## Jump to _Digitcase if (%eax) > กฎ9'
+		
+	movl	$buffer, %eax
+	pushl	%eax
+	call	atoi
+	addl  	$4, %esp
+	pushl	%eax
+
+	jmp	input
+
+_digitcase:
+	movl	$buffer, %eax
+	cmpb	$95, (%eax)
+	jne	pcase
+
+	movl	$buffer, %eax
+	addl	$1, %eax
+	pushl	%eax
+	call	atoi
+	addl  	$4, %esp
+	movl	$0, %ebx
+	subl	%eax, %ebx
+
+	pushl 	%ebx
+	jmp	input	
+
+pcase:
+	movl	$buffer, %eax
+	cmpb	$112, (%eax)
+	jne	qcase
+
+	cmpl	%esp, %ebp
+	jne	pcase_print
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+
+	jmp	input
+pcase_print:
+	##printf("%d\n", (int)stack.pop())
+	movl	(%esp), %eax
+	pushl  	%eax     
+    	pushl  	$print   
+    	call   	printf     
+    	addl   	$8, %esp
+	##/* popl to some register */
+	jmp	input
+
+qcase:
+	movl	$buffer, %eax
+	cmpb	$113, (%eax)
+	jne	pluscase
+	jmp	quit
+
+pluscase:
+	movl	$buffer, %eax	
+	cmpb	$43, (%eax)
+	jne	minuscase
+	cmpl	%esp, %ebp
+	jne	pluscase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+pluscase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	pluscase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+pluscase_b:
+	##b = (int)stack.pop();
+	popl	%eax
+	##res = a + b;
+	addl	%ebx, %eax
+
+	##stack.push(res);
+	pushl 	%eax
+	jmp input
+
+minuscase:
+	movl	$buffer, %eax	
+	cmpb	$45, (%eax)
+	jne	crosscase
+	cmpl	%esp, %ebp
+	jne	minuscase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+minuscase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	minuscase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+minuscase_b:
+	##b = (int)stack.pop();
+	popl	%eax
+	##res = a - b;
+	subl	%ebx, %eax
+
+	##stack.push(res);
+	pushl 	%eax
+	jmp input
+
+crosscase:
+	movl	$buffer, %eax	
+	cmpb	$42, (%eax)
+	jne	dividcase
+	cmpl	%esp, %ebp
+	jne	crosscase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+crosscase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	crosscase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+crosscase_b:
+	##b = (int)stack.pop();
+	popl	%eax
+	##res = a * b;
+	imull	%ebx, %eax
+
+	##stack.push(res);
+	pushl 	%eax
+	jmp input
+
+dividcase:
+	movl	$buffer, %eax	
+	cmpb	$47, (%eax)
+	jne	remaincase
+	cmpl	%esp, %ebp
+	jne	dividcase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+dividcase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	dividcase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+dividcase_b:
+	##b = (int)stack.pop();
+	movl 	%ebx, %ecx
+	popl 	%ebx
+	
+	movl 	%ebx, %edx
+	movl	%ebx, %eax
+	sarl 	$31, %edx
+
+	##res = b / a;
+	idivl	%ecx
+
+	##stack.push(res);
+	pushl 	%eax
+	jmp input
+
+remaincase:
+	movl	$buffer, %eax	
+	cmpb	$37, (%eax)
+	jne	powercase
+	cmpl	%esp, %ebp
+	jne	remaincase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+remaincase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	remaincase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+remaincase_b:
+	##b = (int)stack.pop();
+	movl 	%ebx, %ecx
+	popl 	%ebx
+	
+	movl 	%ebx, %edx
+	movl	%ebx, %eax
+	sarl 	$31, %edx
+
+	##res = b / a;
+	idivl	%ecx
+
+	##stack.push(res);
+	pushl 	%edx
+	jmp input
+
+powercase:
+	movl	$buffer, %eax	
+	cmpb	$94, (%eax)
+	jne	fcase
+	cmpl	%esp, %ebp
+	jne	powercase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+powercase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	powercase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+powercase_b:
+	##b = (int)stack.pop();
+	popl	%eax
+	##res = b ^ a;
+	##function call
+	pushl	%ebx
+	pushl	%eax
+	call 	power
+	addl    $8, %esp
+
+	##stack.push(res);
+	pushl 	%eax
+	jmp input
+
+fcase:
+	movl	$buffer, %eax	
+	cmpb	$102, (%eax)
+	jne	ccase
+	movl	%esp, %ebx
+fcase_loop:
+	cmpl	%ebx, %ebp
+	je	input	
+
+	movl	(%ebx), %eax
+	pushl  	%eax     
+    	pushl  	$print   
+    	call   	printf     
+    	addl   	$8, %esp
+	addl	$4, %ebx	
+
+	jmp 	fcase_loop
+
+ccase:
+	movl	$buffer, %eax	
+	cmpb	$99, (%eax)
+	jne	dcase
+ccase_loop:
+	cmpl	%esp, %ebp
+	je	input
+
+	addl	$4, %esp
+
+	jmp	ccase_loop
+
+dcase:
+	movl	$buffer, %eax	
+	cmpb	$100, (%eax)
+	jne	rcase
+	cmpl	%esp, %ebp
+	jne	dcase_push
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+dcase_push:
+	movl	(%esp), %eax
+	pushl	%eax
+
+	jmp	input
+
+rcase:
+	movl	$buffer, %eax	
+	cmpb	$114, (%eax)
+	jne	input
+	cmpl	%esp, %ebp
+	jne	rcase_a
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	jmp	input
+
+rcase_a:
+	##a = (int)stack.pop();
+	popl	%ebx
+	cmpl	%esp, %ebp
+	jne	rcase_b
+	pushl 	$stackempty
+   	call  	printf
+    	addl  	$4, %esp
+	##stack.push(a);
+	pushl	%ebx
+	jmp	input
+rcase_b:
+	##b = (int)stack.pop();
+	popl	%eax
+
+	##reverse order
+	pushl 	%ebx
+	pushl	%eax
+	jmp 	input
+
+	## PSEUDO-CODE
+	## /*
+	##  * In this pseudo-code we are assuming that no local variables are created
+	##  * in the _main_ process stack. In case you want to allocate space for local
+	##  * variables, please remember to update logic for 'empty dc stack' condition
+	##  * (lines 6, 15 and 20) accordingly.
+	##  */
+	##
+	##1 while (1) {
+	##2	if (scanf("%s", buffer) == EOF)
+	##3		return 0;
+	##4 	if (!isdigit(buffer[0])) {
+	##5		if (buffer[0] == 'p') {
+	##6			if (stack.peek() == NULL) { /* is %esp == %ebp? */
+	##7				printf("dc: stack empty\n");
+	##8			} else {
+	##9				printf("%d\n", (int)stack.pop()); /* popl to some register */
+	##10			}
+	##11		} else if (buffer[0] == 'q') {
+	##12			goto quit;
+	##13		} else if (buffer[0] == '+') {
+	##14			int a, b;
+	##15			if (stack.peek() == NULL) {
+	##16				printf("dc: stack empty\n");
+	##17				continue;
+	##18			}
+	##19			a = (int)stack.pop();
+	##20			if (stack.peek() == NULL) {
+	##21				printf("dc: stack empty\n");
+	##22				stack.push(a); /* pushl some register value */
+	##23				continue;
+	##24			}
+	##25			b = (int)stack.pop(); /* popl to some register */
+	##26			res = a + b;
+	##27 			stack.push(res);
+	##28		} else if (buffer[0] == '-') {
+	##29			/* ... */
+	##30		} else if (buffer[0] == '^') {
+	##31			/* ... powerfunc() ... */
+	##32		} else if { /* ... and so on ... */
+	##33 	} else { /* the first no. is a digit */
+	##34		int no = atoi(buffer);
+	##35		stack.push(no);	/* pushl some register value */
+	##36	}
+	##37 }
+power:
+	pushl   %ebp
+    	movl    %esp, %ebp
+    	## int iPower = 1; int iIndex;
+    	pushl   $1           
+    	subl    $4, %esp
+    	movl    $1, IINDEX(%ebp) ## iIndex = 1
+loop1:
+    	## if (iIndex > iExp) goto loopend1
+    	movl    IINDEX(%ebp), %eax
+    	cmpl    IEXP(%ebp), %eax
+    	jg      loopend1
+    	## iPower *= iBase
+    	movl    IPOWER(%ebp), %eax
+    	imull   IBASE(%ebp)
+    	movl    %eax, IPOWER(%ebp)
+    	#iIndex++
+    	incl    IINDEX(%ebp)
+    	## goto loop1
+    	jmp     loop1
+loopend1:
+    	## return iPower
+    	movl    IPOWER(%ebp), %eax
+    	movl    %ebp, %esp
+    	popl    %ebp
+    	ret
+
+quit:	
+	## return 0
+	movl    $0, %eax
+	movl    %ebp, %esp
+	popl    %ebp
+	ret

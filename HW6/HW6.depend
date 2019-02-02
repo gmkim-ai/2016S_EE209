@@ -1,0 +1,16 @@
+# depslib dependency file v1.0
+1466679606 source:c:\±è°æ¸¸\kaist\c\hw6\main.c
+	<stdio.h>
+	<stdlib.h>
+	<ctype.h>
+	<assert.h>
+	<string.h>
+	"dynarray.h"
+
+1466601048 c:\±è°æ¸¸\kaist\c\hw6\dynarray.h
+
+1466739580 source:c:\±è°æ¸¸\kaist\c\hw6\dynarray.c
+	"dynarray.h"
+	<assert.h>
+	<stdlib.h>
+

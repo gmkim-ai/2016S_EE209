@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1458581714 source:c:\±è°æ¸¸\kaist\c\hw1\main.c
+	<stdio.h>
+	<ctype.h>
+	<stdlib.h>
+	<string.h>
+	<assert.h>
+

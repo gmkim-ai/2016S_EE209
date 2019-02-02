@@ -1,0 +1,18 @@
+# depslib dependency file v1.0
+1461803834 source:c:\±è°æ¸¸\kaist\c\hw3\customer_manager2.c
+	<assert.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	"customer_manager.h"
+
+1461696791 c:\±è°æ¸¸\kaist\c\hw3\customer_manager.h
+
+1461804544 source:c:\±è°æ¸¸\kaist\c\hw3\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<assert.h>
+	<sys/time.h>
+	"customer_manager.h"
+
